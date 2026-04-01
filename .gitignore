@@ -5,6 +5,12 @@
 
 # dotenv files
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*
+!.env.example
 
 # User-specific files
 *.rsuser
@@ -457,6 +463,7 @@ Temporary Items
 
 # content below from: https://github.com/github/gitignore/blob/main/Global/Windows.gitignore
 # Windows thumbnail cache files
+.DS_Store
 Thumbs.db
 ehthumbs.db
 ehthumbs_vista.db
@@ -482,3 +489,33 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Frontend logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+.eslintcache
+.stylelintcache
+.prettiercache
+.parcel-cache
+.turbo
+
+coverage/
+*.lcov
+.nyc_output
+
+dist/
+tmp/
+out/
+build/
+.next/
+.angular/
+.cache/
+
+jspm_packages/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
