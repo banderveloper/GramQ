@@ -27,6 +27,7 @@ public class Quiz : AggregateRoot, IAuditable, ISoftDeletable
         Guard.ThrowIfDefault(createdBy, nameof(createdBy));
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
 
+        // if title is too long
         if(title.Length > QuizRules.MaxQuizTitleLength)
             return Result<Quiz>.Failure(QuizErrors.Quiz.TitleTooLong((uint)title.Length, QuizRules.MaxQuizTitleLength));
 
@@ -38,9 +39,11 @@ public class Quiz : AggregateRoot, IAuditable, ISoftDeletable
         Guard.ThrowIfDefault(updatedBy, nameof(updatedBy));
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
 
+        // mutation in draft mode is restricted
         var draftCheck = EnsureDraft();
         if (draftCheck.IsFailure) return draftCheck;
 
+        // if title too long
         if(title.Length > QuizRules.MaxQuizTitleLength)
             return Result.Failure(QuizErrors.Quiz.TitleTooLong((uint)title.Length, QuizRules.MaxQuizTitleLength));
 
@@ -61,9 +64,11 @@ public class Quiz : AggregateRoot, IAuditable, ISoftDeletable
         if(_questions.Count < 1)
             return Result.Failure(QuizErrors.Quiz.NoQuestions);
 
+        // at least one questions has too few answer options
         if (_questions.Any(q => q.AnswerOptions.Count < QuizRules.MinAnswerOptionsPerQuestion))
             return Result.Failure(QuizErrors.Quiz.QuestionsWithLackingAnswersExists);
 
+        // at least one question hasn't correct answer
         if (_questions.Any(q => q.AnswerOptions.All(option => !option.IsCorrect)))
             return Result.Failure(QuizErrors.Quiz.QuestionsWithoutCorrectAnswerExists);
 
@@ -104,9 +109,11 @@ public class Quiz : AggregateRoot, IAuditable, ISoftDeletable
         Guard.ThrowIfDefault(id, nameof(id));
         Guard.ThrowIfDefault(updatedBy, nameof(updatedBy));
 
+        // mutation in draft mode is restricted
         var draftCheck = EnsureDraft();
         if (draftCheck.IsFailure) return draftCheck;
 
+        // if max questions limit reached
         if (_questions.Count >= QuizRules.MaxQuestionsPerQuiz)
             return Result<Question>.Failure(QuizErrors.Quiz.QuestionsCountLimitReached(QuizRules.MaxQuestionsPerQuiz));
 
@@ -128,6 +135,7 @@ public class Quiz : AggregateRoot, IAuditable, ISoftDeletable
         Guard.ThrowIfDefault(id, nameof(id));
         Guard.ThrowIfDefault(updatedBy, nameof(updatedBy));
 
+        // mutation in draft mode is restricted
         var draftCheck = EnsureDraft();
         if (draftCheck.IsFailure) return draftCheck;
 
@@ -152,6 +160,7 @@ public class Quiz : AggregateRoot, IAuditable, ISoftDeletable
         Guard.ThrowIfDefault(id, nameof(id));
         Guard.ThrowIfDefault(updatedBy, nameof(updatedBy));
 
+        // mutation in draft mode is restricted
         var draftCheck = EnsureDraft();
         if (draftCheck.IsFailure) return draftCheck;
 
@@ -174,9 +183,11 @@ public class Quiz : AggregateRoot, IAuditable, ISoftDeletable
     {
         Guard.ThrowIfDefault(updatedBy, nameof(updatedBy));
 
+        // mutation in draft mode is restricted
         var draftCheck = EnsureDraft();
         if (draftCheck.IsFailure) return draftCheck;
 
+        // count mismatch
         if (orderedQuestionsIds.Count != _questions.Count)
             return Result.Failure(
                 QuizErrors.Quiz.ReorderCountMismatch(
@@ -190,6 +201,7 @@ public class Quiz : AggregateRoot, IAuditable, ISoftDeletable
             if (!seen.Add(id))
                 return Result.Failure(QuizErrors.Quiz.ReorderDuplicatingElements);
 
+            // reordered questions contain odd elements or doesn't contains required elements
             if (!existingIds.Contains(id))
                 return Result.Failure(QuizErrors.Quiz.ReorderMismatch);
         }
@@ -208,6 +220,7 @@ public class Quiz : AggregateRoot, IAuditable, ISoftDeletable
         Guard.ThrowIfDefault(questionId, nameof(questionId));
         Guard.ThrowIfDefault(answerOptionId, nameof(answerOptionId));
 
+        // mutation in draft mode is restricted
         var draftCheck = EnsureDraft();
         if (draftCheck.IsFailure) return draftCheck;
 
@@ -232,6 +245,7 @@ public class Quiz : AggregateRoot, IAuditable, ISoftDeletable
         Guard.ThrowIfDefault(questionId, nameof(questionId));
         Guard.ThrowIfDefault(answerOptionId, nameof(answerOptionId));
 
+        // mutation in draft mode is restricted
         var draftCheck = EnsureDraft();
         if (draftCheck.IsFailure) return draftCheck;
 
@@ -255,6 +269,7 @@ public class Quiz : AggregateRoot, IAuditable, ISoftDeletable
         Guard.ThrowIfDefault(questionId, nameof(questionId));
         Guard.ThrowIfDefault(answerOptionId, nameof(answerOptionId));
 
+        // mutation in draft mode is restricted
         var draftCheck = EnsureDraft();
         if (draftCheck.IsFailure) return draftCheck;
 
@@ -279,6 +294,7 @@ public class Quiz : AggregateRoot, IAuditable, ISoftDeletable
         Guard.ThrowIfDefault(questionId, nameof(questionId));
         Guard.ThrowIfDefault(updatedBy, nameof(updatedBy));
 
+        // mutation in draft mode is restricted
         var draftCheck = EnsureDraft();
         if (draftCheck.IsFailure) return draftCheck;
 

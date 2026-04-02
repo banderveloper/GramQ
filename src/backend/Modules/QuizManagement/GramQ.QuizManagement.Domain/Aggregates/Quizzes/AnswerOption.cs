@@ -14,10 +14,12 @@ public class AnswerOption : Entity
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
+        // if text too long
         if (text.Length > QuizRules.MaxAnswerOptionTextLength)
             return Result<AnswerOption>.Failure(
                 QuizErrors.AnswerOption.TextTooLong((uint)text.Length, QuizRules.MaxAnswerOptionTextLength));
 
+        // if order out of range
         if (order is > QuizRules.MaxAnswerOptionsPerQuestion or < 1)
             return Result<AnswerOption>.Failure(
                 QuizErrors.AnswerOption.OrderOutOfBounds(order, QuizRules.MaxAnswerOptionsPerQuestion));
@@ -29,6 +31,7 @@ public class AnswerOption : Entity
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
+        // if text too long
         if (text.Length > QuizRules.MaxAnswerOptionTextLength)
             return Result.Failure(
                 QuizErrors.AnswerOption.TextTooLong((uint)text.Length, QuizRules.MaxAnswerOptionTextLength));

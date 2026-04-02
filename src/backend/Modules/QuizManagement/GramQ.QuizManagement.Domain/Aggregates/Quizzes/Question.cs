@@ -18,13 +18,16 @@ public class Question : Entity
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
+        // if text too long
         if (text.Length > QuizRules.MaxQuestionTextLength)
             return Result<Question>.Failure(QuizErrors.Question.TextTooLong((uint)text.Length,
                 QuizRules.MaxQuestionTextLength));
 
+        // if order out of range
         if (order is < 1 or > QuizRules.MaxQuestionsPerQuiz)
             return Result<Question>.Failure(QuizErrors.Question.OrderOutOfBounds(order, QuizRules.MaxQuestionsPerQuiz));
 
+        // if time limit out of range
         if (timeLimitSeconds is < QuizRules.MinTimeLimitSeconds or > QuizRules.MaxTimeLimitSeconds)
             return Result<Question>.Failure(QuizErrors.Question.TimeLimitOutOfBounds(timeLimitSeconds,
                 QuizRules.MinTimeLimitSeconds, QuizRules.MaxTimeLimitSeconds));
@@ -34,15 +37,18 @@ public class Question : Entity
 
     internal Result<AnswerOption> AddAnswerOption(Guid id, string text, bool isCorrect)
     {
+        // if answers count will be more than max
         if (_answerOptions.Count >= QuizRules.MaxAnswerOptionsPerQuestion)
             return Result<AnswerOption>.Failure(
                 QuizErrors.Question.AnswerOptionsLimitReached(
                     (uint)_answerOptions.Count + 1,
                     QuizRules.MaxAnswerOptionsPerQuestion));
 
+        // if any answer with this text
         if(_answerOptions.Any(option => string.Equals(option.Text, text, StringComparison.InvariantCultureIgnoreCase)))
             return Result<AnswerOption>.Failure(QuizErrors.Question.AlreadyHasAnswerWithText(text));
 
+        // if correct answer already exists
         if (isCorrect && _answerOptions.Any(ao => ao.IsCorrect))
             return Result<AnswerOption>.Failure(QuizErrors.Question.AlreadyHasCorrectAnswer);
 
@@ -79,10 +85,12 @@ public class Question : Entity
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
+        // if text too long
         if (text.Length > QuizRules.MaxQuestionTextLength)
             return Result.Failure(QuizErrors.Question.TextTooLong((uint)text.Length,
                 QuizRules.MaxQuestionTextLength));
 
+        // if time limit out of range
         if (timeLimitSeconds is < QuizRules.MinTimeLimitSeconds or > QuizRules.MaxTimeLimitSeconds)
             return Result.Failure(QuizErrors.Question.TimeLimitOutOfBounds(timeLimitSeconds,
                 QuizRules.MinTimeLimitSeconds, QuizRules.MaxTimeLimitSeconds));
@@ -100,6 +108,7 @@ public class Question : Entity
         if (option is null)
             return Result.Failure(QuizErrors.Question.AnswerOptionNotFound(id));
 
+        // if question already has correct answer
         if (isCorrect && option.IsCorrect == false && _answerOptions.Any(ao => ao.IsCorrect))
             return Result.Failure(QuizErrors.Question.AlreadyHasCorrectAnswer);
 
@@ -113,6 +122,7 @@ public class Question : Entity
 
     internal Result ReorderAnswerOptions(IReadOnlyList<Guid> orderedAnswerOptionsIds)
     {
+        // if count mismatch
         if (orderedAnswerOptionsIds.Count != _answerOptions.Count)
             return Result.Failure(
                 QuizErrors.Question.ReorderCountMismatch(
@@ -126,6 +136,7 @@ public class Question : Entity
             if (!seen.Add(id))
                 return Result.Failure(QuizErrors.Question.ReorderDuplicatingElements);
 
+            // reordered answers contain odd elements or doesn't contains required elements
             if (!existingIds.Contains(id))
                 return Result.Failure(QuizErrors.Question.ReorderMismatch);
         }
