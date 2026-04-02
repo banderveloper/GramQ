@@ -3,5 +3,5 @@
 public interface IDomainEvent
 {
     Guid EventId { get; }
-    DateTimeOffset OccuredOn { get; }
+    DateTimeOffset OccurredOn { get; }
 }
