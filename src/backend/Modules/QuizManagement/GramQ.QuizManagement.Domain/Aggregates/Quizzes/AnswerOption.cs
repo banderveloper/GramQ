@@ -12,13 +12,7 @@ public class AnswerOption : Entity
 
     internal static Result<AnswerOption> Create(Guid id, string text, bool isCorrect, uint order)
     {
-        if (id == Guid.Empty)
-            throw new ArgumentException("Answer option id can't be default");
-
-        ArgumentNullException.ThrowIfNull(text);
-
-        if (string.IsNullOrWhiteSpace(text))
-            throw new ArgumentException("Answer option text can't be empty", nameof(text));
+        ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
         if (text.Length > QuizRules.MaxAnswerOptionTextLength)
             return Result<AnswerOption>.Failure(
@@ -33,10 +27,7 @@ public class AnswerOption : Entity
 
     internal Result Update(string text, bool isCorrect)
     {
-        ArgumentNullException.ThrowIfNull(text);
-
-        if (string.IsNullOrWhiteSpace(text))
-            throw new ArgumentException("Answer option text cannot be empty or whitespace.", nameof(text));
+        ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
         if (text.Length > QuizRules.MaxAnswerOptionTextLength)
             return Result.Failure(
@@ -45,6 +36,11 @@ public class AnswerOption : Entity
         Text = text;
         IsCorrect = isCorrect;
         return Result.Success();
+    }
+
+    internal void SetOrder(uint order)
+    {
+        Order = order;
     }
 
     private AnswerOption(Guid id, string text, bool isCorrect, uint order) : base(id)

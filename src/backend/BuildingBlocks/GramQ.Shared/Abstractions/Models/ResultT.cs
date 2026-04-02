@@ -48,4 +48,9 @@ public readonly struct Result<TValue> where TValue : notnull
         Func<TValue, TResult> onSuccess,
         Func<Error, TResult> onFailure) =>
         _isSuccess ? onSuccess(_value!) : onFailure(Error);
+
+    public static implicit operator Result<TValue>(Result result) =>
+        result.IsSuccess
+            ? throw new InvalidOperationException("Cannot convert successful Result to Result<TValue>.")
+            : Failure(result.Error);
 }

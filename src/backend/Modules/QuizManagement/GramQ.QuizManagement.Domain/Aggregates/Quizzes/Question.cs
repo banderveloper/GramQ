@@ -14,16 +14,9 @@ public class Question : Entity
     private readonly List<AnswerOption> _answerOptions = [];
     public IReadOnlyCollection<AnswerOption> AnswerOptions => _answerOptions.AsReadOnly();
 
-    public static Result<Question> Create(Guid id, string text, uint order, uint timeLimitSeconds, uint points)
+    internal static Result<Question> Create(Guid id, string text, uint order, uint timeLimitSeconds, uint points)
     {
-        if (id == Guid.Empty)
-            throw new ArgumentException("Question id can't be default");
-
-        if (text is null)
-            throw new ArgumentNullException(nameof(text), "Question text can't be null");
-
-        if (string.IsNullOrWhiteSpace(text))
-            throw new ArgumentException("Question text can't be empty", nameof(text));
+        ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
         if (text.Length > QuizRules.MaxQuestionTextLength)
             return Result<Question>.Failure(QuizErrors.Question.TextTooLong((uint)text.Length,
@@ -39,13 +32,16 @@ public class Question : Entity
         return new Question(id, text, order, timeLimitSeconds, points);
     }
 
-    public Result<AnswerOption> AddAnswerOption(Guid id, string text, bool isCorrect)
+    internal Result<AnswerOption> AddAnswerOption(Guid id, string text, bool isCorrect)
     {
         if (_answerOptions.Count >= QuizRules.MaxAnswerOptionsPerQuestion)
             return Result<AnswerOption>.Failure(
                 QuizErrors.Question.AnswerOptionsLimitReached(
                     (uint)_answerOptions.Count + 1,
                     QuizRules.MaxAnswerOptionsPerQuestion));
+
+        if(_answerOptions.Any(option => string.Equals(option.Text, text, StringComparison.InvariantCultureIgnoreCase)))
+            return Result<AnswerOption>.Failure(QuizErrors.Question.AlreadyHasAnswerWithText(text));
 
         if (isCorrect && _answerOptions.Any(ao => ao.IsCorrect))
             return Result<AnswerOption>.Failure(QuizErrors.Question.AlreadyHasCorrectAnswer);
@@ -62,30 +58,26 @@ public class Question : Entity
         return createAnswerOptionResult.Value;
     }
 
-    public Result RemoveAnswerOption(Guid id)
+    internal Result RemoveAnswerOption(Guid id)
     {
-        if (id == Guid.Empty)
-            throw new ArgumentException("Answer option id can't be default");
-
         var option = _answerOptions.FirstOrDefault(ao => ao.Id == id);
         if (option is null)
-            return Result.Failure(QuizErrors.Question.AnswerOptionsNotFound(id));
+            return Result.Failure(QuizErrors.Question.AnswerOptionNotFound(id));
 
         if (option.IsCorrect)
             return Result.Failure(QuizErrors.Question.LastCorrectAnswerDelete);
 
         _answerOptions.RemoveAll(ao => ao.Id == id);
 
+        for (var i = 0; i < _answerOptions.Count; i++)
+            _answerOptions[i].SetOrder((uint)(i + 1));
+
         return Result.Success();
     }
 
-    public Result Update(string text, uint timeLimitSeconds, uint points)
+    internal Result Update(string text, uint timeLimitSeconds, uint points)
     {
-        if (text is null)
-            throw new ArgumentNullException(nameof(text), "Question text can't be null");
-
-        if (string.IsNullOrWhiteSpace(text))
-            throw new ArgumentException("Question text can't be empty", nameof(text));
+        ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
         if (text.Length > QuizRules.MaxQuestionTextLength)
             return Result.Failure(QuizErrors.Question.TextTooLong((uint)text.Length,
@@ -102,16 +94,46 @@ public class Question : Entity
         return Result.Success();
     }
 
-    public Result UpdateAnswerOption(Guid id, string text, bool isCorrect)
+    internal Result UpdateAnswerOption(Guid id, string text, bool isCorrect)
     {
         var option = _answerOptions.FirstOrDefault(ao => ao.Id == id);
         if (option is null)
-            return Result.Failure(QuizErrors.Question.AnswerOptionsNotFound(id));
+            return Result.Failure(QuizErrors.Question.AnswerOptionNotFound(id));
 
         if (isCorrect && option.IsCorrect == false && _answerOptions.Any(ao => ao.IsCorrect))
             return Result.Failure(QuizErrors.Question.AlreadyHasCorrectAnswer);
 
         return option.Update(text, isCorrect);
+    }
+
+    internal void SetOrder(uint order)
+    {
+        Order = order;
+    }
+
+    internal Result ReorderAnswerOptions(IReadOnlyList<Guid> orderedAnswerOptionsIds)
+    {
+        if (orderedAnswerOptionsIds.Count != _answerOptions.Count)
+            return Result.Failure(
+                QuizErrors.Question.ReorderCountMismatch(
+                    (uint)_answerOptions.Count, (uint)orderedAnswerOptionsIds.Count));
+
+        var existingIds = _answerOptions.Select(ao => ao.Id).ToHashSet();
+        var seen = new HashSet<Guid>(orderedAnswerOptionsIds.Count);
+
+        foreach (var id in orderedAnswerOptionsIds)
+        {
+            if (!seen.Add(id))
+                return Result.Failure(QuizErrors.Question.ReorderDuplicatingElements);
+
+            if (!existingIds.Contains(id))
+                return Result.Failure(QuizErrors.Question.ReorderMismatch);
+        }
+
+        for (var i = 0; i < orderedAnswerOptionsIds.Count; i++)
+            _answerOptions.First(ao => ao.Id == orderedAnswerOptionsIds[i]).SetOrder((uint)(i + 1));
+
+        return Result.Success();
     }
 
     private Question(Guid id, string text, uint order, uint timeLimitSeconds, uint points) : base(id)
@@ -122,6 +144,7 @@ public class Question : Entity
         Points = points;
     }
 
+    /// <summary>Required by EF Core. Do not use in application code.</summary>
     private Question()
     {
         Text = null!;
