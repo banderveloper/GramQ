@@ -1,4 +1,5 @@
 ﻿using GramQ.QuizManagement.Domain.Aggregates.Quizzes.Errors;
+using GramQ.QuizManagement.Domain.Events;
 using GramQ.Shared.Abstractions.Domain;
 using GramQ.Shared.Abstractions.Models;
 using GramQ.Shared.Guards;
@@ -73,8 +74,9 @@ public class Quiz : AggregateRoot, IAuditable, ISoftDeletable
             return Result.Failure(QuizErrors.Quiz.QuestionsWithoutCorrectAnswerExists);
 
         Status = QuizStatus.Published;
-
         Touch(updatedBy, now);
+
+        RaiseDomainEvent(new QuizPublishedEvent(Guid.NewGuid(), now, Id, updatedBy));
 
         return Result.Success();
     }
@@ -90,16 +92,25 @@ public class Quiz : AggregateRoot, IAuditable, ISoftDeletable
 
         Touch(updatedBy, now);
 
+        RaiseDomainEvent(new QuizUnpublishedEvent(Guid.NewGuid(), now, Id, updatedBy));
+
         return Result.Success();
     }
 
-    public Result Delete(DateTimeOffset now)
+    public Result Delete(Guid deletedBy, DateTimeOffset now)
     {
+        Guard.ThrowIfDefault(deletedBy, nameof(deletedBy));
+
         if (IsDeleted)
             return Result.Failure(QuizErrors.Quiz.AlreadyDeleted);
 
         IsDeleted = true;
         DeletedAt = now;
+
+        Touch(deletedBy, now);
+
+        RaiseDomainEvent(new QuizDeletedEvent(Guid.NewGuid(), now, Id, deletedBy));
+
         return Result.Success();
     }
 
