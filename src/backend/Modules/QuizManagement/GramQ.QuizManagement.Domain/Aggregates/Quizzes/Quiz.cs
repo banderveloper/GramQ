@@ -353,6 +353,7 @@ public class Quiz : AggregateRoot, IAuditable, ISoftDeletable
     {
         if (Status != QuizStatus.Draft)
             return Result.Failure(QuizErrors.Quiz.MutationNotInDraft);
+
         return Result.Success();
     }
 }
