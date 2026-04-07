@@ -489,4 +489,559 @@ public class QuizTests
         quiz.Questions.First().Order.Should().Be(1);
         quiz.Questions.Last().Order.Should().Be(2);
     }
+
+    [Fact]
+    public void Update_ValidParameters_ReturnsSuccess()
+    {
+        // Arrange
+        var quiz = new QuizBuilder().BuildDraft();
+        const string newTitle = "New Updated Title";
+
+        // Act
+        var result = quiz.Update(newTitle, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        quiz.Title.Should().Be(newTitle);
+        quiz.UpdatedBy.Should().Be(quiz.CreatedBy);
+        quiz.UpdatedAt.Should().Be(quiz.CreatedAt);
+    }
+
+    [Fact]
+    public void Update_EmptyTitle_ThrowsArgumentException()
+    {
+        // Arrange
+        var quiz = new QuizBuilder().BuildDraft();
+
+        // Act
+        var act = () => quiz.Update(string.Empty, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Update_TitleTooLong_ReturnsFailure()
+    {
+        // Arrange
+        var quiz = new QuizBuilder().BuildDraft();
+        const uint longTitleLength = QuizRules.MaxQuizTitleLength + 1;
+
+        // Act
+        var result = quiz.Update(new string('a', (int)longTitleLength), quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(QuizErrors.Quiz.TitleTooLong(longTitleLength, QuizRules.MaxQuizTitleLength));
+    }
+
+    [Fact]
+    public void Update_QuizPublished_ReturnsMutationNotInDraftError()
+    {
+        // Arrange
+        var quiz = new QuizBuilder().BuildPublished();
+
+        // Act
+        var result = quiz.Update("Some Title", quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(QuizErrors.Quiz.MutationNotInDraft);
+    }
+
+    [Fact]
+    public void UpdateQuestion_ValidParameters_ReturnsSuccess()
+    {
+        // Arrange
+        var questionId = Guid.Parse("E1A68C02-848A-4D5E-8E1E-8EC3386C59AA");
+        var quiz = new QuizBuilder().BuildDraft();
+        quiz.AddQuestion(questionId, "Old Question", QuizRules.MinTimeLimitSeconds + 1, 10, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Act
+        var result = quiz.UpdateQuestion(questionId, "New Question", QuizRules.MinTimeLimitSeconds + 5, 20, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var updatedQuestion = quiz.Questions.First();
+        updatedQuestion.Text.Should().Be("New Question");
+        updatedQuestion.TimeLimitSeconds.Should().Be(QuizRules.MinTimeLimitSeconds + 5);
+        updatedQuestion.Points.Should().Be(20);
+    }
+
+    [Fact]
+    public void UpdateQuestion_QuizPublished_ReturnsMutationNotInDraftError()
+    {
+        // Arrange
+        var quiz = new QuizBuilder().BuildPublished();
+        var questionId = quiz.Questions.First().Id;
+
+        // Act
+        var result = quiz.UpdateQuestion(questionId, "New Text", QuizRules.MinTimeLimitSeconds + 1, 10, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(QuizErrors.Quiz.MutationNotInDraft);
+    }
+
+    [Fact]
+    public void UpdateQuestion_QuestionNotFound_ReturnsQuestionNotFoundError()
+    {
+        // Arrange
+        var quiz = new QuizBuilder().BuildDraft();
+        var nonExistingQuestionId = Guid.NewGuid();
+
+        // Act
+        var result = quiz.UpdateQuestion(nonExistingQuestionId, "New Text", QuizRules.MinTimeLimitSeconds + 1, 10, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(QuizErrors.Quiz.QuestionNotFound(nonExistingQuestionId));
+    }
+
+    [Fact]
+    public void UpdateQuestion_TextTooLong_ReturnsFailure()
+    {
+        // Arrange
+        var questionId = Guid.NewGuid();
+        var quiz = new QuizBuilder().BuildDraft();
+        quiz.AddQuestion(questionId, "Question", QuizRules.MinTimeLimitSeconds + 1, 10, quiz.CreatedBy, quiz.CreatedAt);
+        const uint longTextLength = QuizRules.MaxQuestionTextLength + 1;
+
+        // Act
+        var result = quiz.UpdateQuestion(questionId, new string('a', (int)longTextLength), QuizRules.MinTimeLimitSeconds + 1, 10, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(QuizErrors.Question.TextTooLong(longTextLength, QuizRules.MaxQuestionTextLength));
+    }
+
+    [Fact]
+    public void UpdateQuestion_TimeLimitOutOfBounds_ReturnsFailure()
+    {
+        // Arrange
+        var questionId = Guid.NewGuid();
+        var quiz = new QuizBuilder().BuildDraft();
+        quiz.AddQuestion(questionId, "Question", QuizRules.MinTimeLimitSeconds + 1, 10, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Act
+        var result = quiz.UpdateQuestion(questionId, "Question", QuizRules.MinTimeLimitSeconds - 1, 10, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(QuizErrors.Question.TimeLimitOutOfBounds(QuizRules.MinTimeLimitSeconds - 1, QuizRules.MinTimeLimitSeconds, QuizRules.MaxTimeLimitSeconds));
+    }
+
+    [Fact]
+    public void ReorderQuestions_ValidOrder_ReturnsSuccess()
+    {
+        // Arrange
+        var firstQuestionId = Guid.NewGuid();
+        var secondQuestionId = Guid.NewGuid();
+        var quiz = new QuizBuilder().BuildDraft();
+        quiz.AddQuestion(firstQuestionId, "Q1", 15, 10, quiz.CreatedBy, quiz.CreatedAt);
+        quiz.AddQuestion(secondQuestionId, "Q2", 15, 10, quiz.CreatedBy, quiz.CreatedAt);
+
+        var newOrder = new List<Guid> { secondQuestionId, firstQuestionId };
+
+        // Act
+        var result = quiz.ReorderQuestions(newOrder, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        quiz.Questions.First(q => q.Id == secondQuestionId).Order.Should().Be(1);
+        quiz.Questions.First(q => q.Id == firstQuestionId).Order.Should().Be(2);
+    }
+
+    [Fact]
+    public void ReorderQuestions_QuizPublished_ReturnsMutationNotInDraftError()
+    {
+        // Arrange
+        var quiz = new QuizBuilder().BuildPublished();
+        var order = quiz.Questions.Select(q => q.Id).ToList();
+
+        // Act
+        var result = quiz.ReorderQuestions(order, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(QuizErrors.Quiz.MutationNotInDraft);
+    }
+
+    [Fact]
+    public void ReorderQuestions_CountMismatch_ReturnsFailure()
+    {
+        // Arrange
+        var quiz = new QuizBuilder().BuildDraft();
+        quiz.AddQuestion(Guid.NewGuid(), "Q1", 15, 10, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Act
+        var result = quiz.ReorderQuestions(new List<Guid>(), quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(QuizErrors.Quiz.ReorderCountMismatch(1, 0));
+    }
+
+    [Fact]
+    public void ReorderQuestions_DuplicatingElements_ReturnsFailure()
+    {
+        // Arrange
+        var questionId = Guid.NewGuid();
+        var quiz = new QuizBuilder().BuildDraft();
+        quiz.AddQuestion(questionId, "Q1", 15, 10, quiz.CreatedBy, quiz.CreatedAt);
+        quiz.AddQuestion(Guid.NewGuid(), "Q2", 15, 10, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Act
+        var result = quiz.ReorderQuestions(new List<Guid> { questionId, questionId }, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(QuizErrors.Quiz.ReorderDuplicatingElements);
+    }
+
+    [Fact]
+    public void ReorderQuestions_Mismatch_ReturnsFailure()
+    {
+        // Arrange
+        var quiz = new QuizBuilder().BuildDraft();
+        quiz.AddQuestion(Guid.NewGuid(), "Q1", 15, 10, quiz.CreatedBy, quiz.CreatedAt);
+        var nonExistingQuestionId = Guid.NewGuid();
+
+        // Act
+        var result = quiz.ReorderQuestions(new List<Guid> { nonExistingQuestionId }, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(QuizErrors.Quiz.ReorderMismatch);
+    }
+
+    [Fact]
+    public void AddAnswerOption_ValidParameters_ReturnsSuccess()
+    {
+        // Arrange
+        var questionId = Guid.NewGuid();
+        var answerOptionId = Guid.NewGuid();
+        var quiz = new QuizBuilder().BuildDraft();
+        quiz.AddQuestion(questionId, "Q1", 15, 10, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Act
+        var result = quiz.AddAnswerOption(questionId, answerOptionId, "Answer 1", true, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Id.Should().Be(answerOptionId);
+        result.Value.Text.Should().Be("Answer 1");
+        result.Value.IsCorrect.Should().BeTrue();
+        result.Value.Order.Should().Be(1);
+    }
+
+    [Fact]
+    public void AddAnswerOption_QuizPublished_ReturnsMutationNotInDraftError()
+    {
+        // Arrange
+        var quiz = new QuizBuilder().BuildPublished();
+        var questionId = quiz.Questions.First().Id;
+
+        // Act
+        var result = quiz.AddAnswerOption(questionId, Guid.NewGuid(), "Answer", false, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(QuizErrors.Quiz.MutationNotInDraft);
+    }
+
+    [Fact]
+    public void AddAnswerOption_QuestionNotFound_ReturnsFailure()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        var quiz = new QuizBuilder().BuildDraft();
+
+        // Act
+        var result = quiz.AddAnswerOption(id, Guid.NewGuid(), "Answer", false, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(QuizErrors.Quiz.QuestionNotFound(id)); // Dummy check, actual error id is dynamic
+    }
+
+    [Fact]
+    public void AddAnswerOption_AnswerOptionsLimitReached_ReturnsFailure()
+    {
+        // Arrange
+        var questionId = Guid.NewGuid();
+        var quiz = new QuizBuilder().BuildDraft();
+        quiz.AddQuestion(questionId, "Q1", 15, 10, quiz.CreatedBy, quiz.CreatedAt);
+
+        for (var i = 0; i < QuizRules.MaxAnswerOptionsPerQuestion; i++)
+        {
+            quiz.AddAnswerOption(questionId, Guid.NewGuid(), $"Answer {i}", false, quiz.CreatedBy, quiz.CreatedAt);
+        }
+
+        // Act
+        var result = quiz.AddAnswerOption(questionId, Guid.NewGuid(), "Odd Answer", false, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(QuizErrors.Question.AnswerOptionsLimitReached(QuizRules.MaxAnswerOptionsPerQuestion + 1, QuizRules.MaxAnswerOptionsPerQuestion));
+    }
+
+    [Fact]
+    public void AddAnswerOption_AlreadyHasAnswerWithText_ReturnsFailure()
+    {
+        // Arrange
+        var questionId = Guid.NewGuid();
+        var quiz = new QuizBuilder().BuildDraft();
+        quiz.AddQuestion(questionId, "Q1", 15, 10, quiz.CreatedBy, quiz.CreatedAt);
+        quiz.AddAnswerOption(questionId, Guid.NewGuid(), "Same Answer", false, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Act
+        var result = quiz.AddAnswerOption(questionId, Guid.NewGuid(), "same answer", false, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(QuizErrors.Question.AlreadyHasAnswerWithText("same answer"));
+    }
+
+    [Fact]
+    public void AddAnswerOption_AlreadyHasCorrectAnswer_ReturnsFailure()
+    {
+        // Arrange
+        var questionId = Guid.NewGuid();
+        var quiz = new QuizBuilder().BuildDraft();
+        quiz.AddQuestion(questionId, "Q1", 15, 10, quiz.CreatedBy, quiz.CreatedAt);
+        quiz.AddAnswerOption(questionId, Guid.NewGuid(), "Correct 1", true, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Act
+        var result = quiz.AddAnswerOption(questionId, Guid.NewGuid(), "Correct 2", true, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(QuizErrors.Question.AlreadyHasCorrectAnswer);
+    }
+
+    [Fact]
+    public void AddAnswerOption_TextTooLong_ReturnsFailure()
+    {
+        // Arrange
+        var questionId = Guid.NewGuid();
+        var quiz = new QuizBuilder().BuildDraft();
+        quiz.AddQuestion(questionId, "Q1", 15, 10, quiz.CreatedBy, quiz.CreatedAt);
+        const uint longTextLength = QuizRules.MaxAnswerOptionTextLength + 1;
+
+        // Act
+        var result = quiz.AddAnswerOption(questionId, Guid.NewGuid(), new string('a', (int)longTextLength), false, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(QuizErrors.AnswerOption.TextTooLong(longTextLength, QuizRules.MaxAnswerOptionTextLength));
+    }
+
+    [Fact]
+    public void UpdateAnswerOption_ValidParameters_ReturnsSuccess()
+    {
+        // Arrange
+        var questionId = Guid.NewGuid();
+        var answerOptionId = Guid.NewGuid();
+        var quiz = new QuizBuilder().BuildDraft();
+        quiz.AddQuestion(questionId, "Q1", 15, 10, quiz.CreatedBy, quiz.CreatedAt);
+        quiz.AddAnswerOption(questionId, answerOptionId, "Old Answer", false, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Act
+        var result = quiz.UpdateAnswerOption(questionId, answerOptionId, "New Answer", true, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var updatedOption = quiz.Questions.First().AnswerOptions.First();
+        updatedOption.Text.Should().Be("New Answer");
+        updatedOption.IsCorrect.Should().BeTrue();
+    }
+
+    [Fact]
+    public void UpdateAnswerOption_QuizPublished_ReturnsMutationNotInDraftError()
+    {
+        // Arrange
+        var quiz = new QuizBuilder().BuildPublished();
+        var questionId = quiz.Questions.First().Id;
+        var answerOptionId = quiz.Questions.First().AnswerOptions.First().Id;
+
+        // Act
+        var result = quiz.UpdateAnswerOption(questionId, answerOptionId, "New Text", false, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(QuizErrors.Quiz.MutationNotInDraft);
+    }
+
+    [Fact]
+    public void UpdateAnswerOption_AlreadyHasCorrectAnswer_ReturnsFailure()
+    {
+        // Arrange
+        var questionId = Guid.NewGuid();
+        var correctOptionId = Guid.NewGuid();
+        var falseOptionId = Guid.NewGuid();
+        var quiz = new QuizBuilder().BuildDraft();
+        quiz.AddQuestion(questionId, "Q1", 15, 10, quiz.CreatedBy, quiz.CreatedAt);
+        quiz.AddAnswerOption(questionId, correctOptionId, "Correct", true, quiz.CreatedBy, quiz.CreatedAt);
+        quiz.AddAnswerOption(questionId, falseOptionId, "False", false, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Act
+        var result = quiz.UpdateAnswerOption(questionId, falseOptionId, "False", true, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(QuizErrors.Question.AlreadyHasCorrectAnswer);
+    }
+
+    [Fact]
+    public void RemoveAnswerOption_ValidState_ReturnsSuccess()
+    {
+        // Arrange
+        var questionId = Guid.NewGuid();
+        var optionId = Guid.NewGuid();
+        var quiz = new QuizBuilder().BuildDraft();
+        quiz.AddQuestion(questionId, "Q1", 15, 10, quiz.CreatedBy, quiz.CreatedAt);
+        quiz.AddAnswerOption(questionId, optionId, "Answer", false, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Act
+        var result = quiz.RemoveAnswerOption(questionId, optionId, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        quiz.Questions.First().AnswerOptions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RemoveAnswerOption_QuizPublished_ReturnsMutationNotInDraftError()
+    {
+        // Arrange
+        var quiz = new QuizBuilder().BuildPublished();
+        var questionId = quiz.Questions.First().Id;
+        var optionId = quiz.Questions.First().AnswerOptions.First().Id;
+
+        // Act
+        var result = quiz.RemoveAnswerOption(questionId, optionId, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(QuizErrors.Quiz.MutationNotInDraft);
+    }
+
+    [Fact]
+    public void RemoveAnswerOption_IsCorrect_ReturnsFailure()
+    {
+        // Arrange
+        var questionId = Guid.NewGuid();
+        var optionId = Guid.NewGuid();
+        var quiz = new QuizBuilder().BuildDraft();
+        quiz.AddQuestion(questionId, "Q1", 15, 10, quiz.CreatedBy, quiz.CreatedAt);
+        quiz.AddAnswerOption(questionId, optionId, "Answer", true, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Act
+        var result = quiz.RemoveAnswerOption(questionId, optionId, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(QuizErrors.Question.LastCorrectAnswerDelete);
+    }
+
+    [Fact]
+    public void RemoveAnswerOption_MiddleOption_ReordersRemainingOptions()
+    {
+        // Arrange
+        var questionId = Guid.NewGuid();
+        var firstOptionId = Guid.NewGuid();
+        var secondOptionId = Guid.NewGuid();
+        var thirdOptionId = Guid.NewGuid();
+        var quiz = new QuizBuilder().BuildDraft();
+
+        quiz.AddQuestion(questionId, "Q1", 15, 10, quiz.CreatedBy, quiz.CreatedAt);
+        quiz.AddAnswerOption(questionId, firstOptionId, "A1", true, quiz.CreatedBy, quiz.CreatedAt);
+        quiz.AddAnswerOption(questionId, secondOptionId, "A2", false, quiz.CreatedBy, quiz.CreatedAt);
+        quiz.AddAnswerOption(questionId, thirdOptionId, "A3", false, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Act
+        quiz.RemoveAnswerOption(questionId, secondOptionId, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        var remainingOptions = quiz.Questions.First().AnswerOptions.ToList();
+        remainingOptions.Should().HaveCount(2);
+        remainingOptions.First(o => o.Id == firstOptionId).Order.Should().Be(1);
+        remainingOptions.First(o => o.Id == thirdOptionId).Order.Should().Be(2);
+    }
+
+    [Fact]
+    public void ReorderAnswerOptions_ValidOrder_ReturnsSuccess()
+    {
+        // Arrange
+        var questionId = Guid.NewGuid();
+        var firstOptionId = Guid.NewGuid();
+        var secondOptionId = Guid.NewGuid();
+        var quiz = new QuizBuilder().BuildDraft();
+
+        quiz.AddQuestion(questionId, "Q1", 15, 10, quiz.CreatedBy, quiz.CreatedAt);
+        quiz.AddAnswerOption(questionId, firstOptionId, "A1", true, quiz.CreatedBy, quiz.CreatedAt);
+        quiz.AddAnswerOption(questionId, secondOptionId, "A2", false, quiz.CreatedBy, quiz.CreatedAt);
+
+        var newOrder = new List<Guid> { secondOptionId, firstOptionId };
+
+        // Act
+        var result = quiz.ReorderAnswerOptions(questionId, newOrder, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var options = quiz.Questions.First().AnswerOptions;
+        options.First(o => o.Id == secondOptionId).Order.Should().Be(1);
+        options.First(o => o.Id == firstOptionId).Order.Should().Be(2);
+    }
+
+    [Fact]
+    public void ReorderAnswerOptions_QuizPublished_ReturnsMutationNotInDraftError()
+    {
+        // Arrange
+        var quiz = new QuizBuilder().BuildPublished();
+        var questionId = quiz.Questions.First().Id;
+        var order = quiz.Questions.First().AnswerOptions.Select(ao => ao.Id).ToList();
+
+        // Act
+        var result = quiz.ReorderAnswerOptions(questionId, order, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(QuizErrors.Quiz.MutationNotInDraft);
+    }
+
+    [Fact]
+    public void ReorderAnswerOptions_CountMismatch_ReturnsFailure()
+    {
+        // Arrange
+        var questionId = Guid.NewGuid();
+        var quiz = new QuizBuilder().BuildDraft();
+        quiz.AddQuestion(questionId, "Q1", 15, 10, quiz.CreatedBy, quiz.CreatedAt);
+        quiz.AddAnswerOption(questionId, Guid.NewGuid(), "A1", true, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Act
+        var result = quiz.ReorderAnswerOptions(questionId, new List<Guid>(), quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(QuizErrors.Question.ReorderCountMismatch(1, 0));
+    }
+
+    [Fact]
+    public void ReorderAnswerOptions_Mismatch_ReturnsFailure()
+    {
+        // Arrange
+        var questionId = Guid.NewGuid();
+        var quiz = new QuizBuilder().BuildDraft();
+        quiz.AddQuestion(questionId, "Q1", 15, 10, quiz.CreatedBy, quiz.CreatedAt);
+        quiz.AddAnswerOption(questionId, Guid.NewGuid(), "A1", true, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Act
+        var result = quiz.ReorderAnswerOptions(questionId, new List<Guid> { Guid.NewGuid() }, quiz.CreatedBy, quiz.CreatedAt);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(QuizErrors.Question.ReorderMismatch);
+    }
 }
