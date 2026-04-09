@@ -27,6 +27,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "QuizManagement", "QuizManag
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GramQ.QuizManagement.Domain.Tests", "tests\QuizManagement\GramQ.QuizManagement.Domain.Tests\GramQ.QuizManagement.Domain.Tests.csproj", "{98A3449D-8BBE-45CD-8F2B-0C18A08DDE4E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GramQ.QuizManagement.Application", "GramQ.QuizManagement.Application\GramQ.QuizManagement.Application.csproj", "{6AD2DF5A-ADF5-453E-9FE7-A4926B5B4C99}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,6 +43,7 @@ Global
 		{95FFD3D7-6A2F-4C35-A5A0-F8330F05B4C7} = {5657C02B-1D66-433D-B578-0CF65813AB84}
 		{19D9BF5C-F0FD-4F0E-BD5C-09B9D36B3F22} = {2765AA09-232A-4E5F-9594-65DA01FBB01C}
 		{98A3449D-8BBE-45CD-8F2B-0C18A08DDE4E} = {19D9BF5C-F0FD-4F0E-BD5C-09B9D36B3F22}
+		{6AD2DF5A-ADF5-453E-9FE7-A4926B5B4C99} = {5657C02B-1D66-433D-B578-0CF65813AB84}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{FBF20CA0-9F97-496F-82D6-4E6601C2ABF1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -55,5 +58,9 @@ Global
 		{98A3449D-8BBE-45CD-8F2B-0C18A08DDE4E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{98A3449D-8BBE-45CD-8F2B-0C18A08DDE4E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{98A3449D-8BBE-45CD-8F2B-0C18A08DDE4E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6AD2DF5A-ADF5-453E-9FE7-A4926B5B4C99}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6AD2DF5A-ADF5-453E-9FE7-A4926B5B4C99}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6AD2DF5A-ADF5-453E-9FE7-A4926B5B4C99}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6AD2DF5A-ADF5-453E-9FE7-A4926B5B4C99}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

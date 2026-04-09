@@ -5,26 +5,30 @@ using GramQ.Shared.Abstractions.Time;
 
 namespace GramQ.QuizManagement.Application.UseCases.Commands;
 
-public sealed record ReorderAnswerOptionCommand(
+public sealed record ReorderAnswersOptionCommand(
     Guid QuizId,
     Guid QuestionId,
-    IReadOnlyList<Guid> AnswerOptionsIds,
-    Guid ReorderedBy);
+    IReadOnlyList<Guid> AnswerOptionsIds);
 
-public sealed class ReorderAnswerOptionCommandHandler(
+public sealed class ReorderAnswersOptionCommandHandler(
     IQuizRepository quizRepository,
     IUnitOfWork unitOfWork,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    ICurrentUserContext currentUser)
 {
-    public async Task<Result> HandleAsync(ReorderAnswerOptionCommand command, CancellationToken cancellationToken)
+    public async Task<Result> HandleAsync(ReorderAnswersOptionCommand command, CancellationToken cancellationToken)
     {
         var quiz = await quizRepository.GetByIdAsync(command.QuizId, cancellationToken);
 
         if (quiz is null)
             return QuizErrors.Quiz.NotFound(command.QuizId);
 
+        if (quiz.CreatedBy != currentUser.UserId && !currentUser.IsAdmin)
+            return QuizErrors.Quiz.Forbidden;
+
         var reorderAnswerOptionsResult = quiz.ReorderAnswerOptions(command.QuestionId, command.AnswerOptionsIds,
-            command.ReorderedBy, dateTimeProvider.UtcNow);
+            currentUser.UserId, dateTimeProvider.UtcNow);
+
         if (reorderAnswerOptionsResult.IsFailure)
             return reorderAnswerOptionsResult.Error;
 

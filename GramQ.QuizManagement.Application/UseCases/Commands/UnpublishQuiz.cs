@@ -1,6 +1,35 @@
-﻿namespace GramQ.QuizManagement.Application.UseCases.Commands;
+﻿using GramQ.QuizManagement.Application.Abstractions;
+using GramQ.QuizManagement.Domain.Aggregates.Quizzes.Errors;
+using GramQ.Shared.Abstractions.Models;
+using GramQ.Shared.Abstractions.Time;
 
-public class UnpublishQuiz
+namespace GramQ.QuizManagement.Application.UseCases.Commands;
+
+public sealed record UnpublishQuizCommand(Guid QuizId);
+
+public sealed class UnpublishQuizCommandHandler(
+    IQuizRepository quizRepository,
+    IUnitOfWork unitOfWork,
+    IDateTimeProvider dateTimeProvider,
+    ICurrentUserContext currentUser)
 {
-    
+    public async Task<Result> HandleAsync(UnpublishQuizCommand command, CancellationToken cancellationToken)
+    {
+        var quiz = await quizRepository.GetByIdAsync(command.QuizId, cancellationToken);
+
+        if (quiz is null)
+            return QuizErrors.Quiz.NotFound(command.QuizId);
+
+        if (quiz.CreatedBy != currentUser.UserId && !currentUser.IsAdmin)
+            return QuizErrors.Quiz.Forbidden;
+
+        var unpublishResult = quiz.Unpublish(currentUser.UserId, dateTimeProvider.UtcNow);
+
+        if (unpublishResult.IsFailure)
+            return unpublishResult.Error;
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
+    }
 }
