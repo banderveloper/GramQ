@@ -87,6 +87,16 @@ public static class QuizErrors
                 "Quiz.MutationNotInDraft",
                 $"Quiz mutation not in draft mode is restricted");
 
+        public static Error NotFound(Guid quizId) =>
+            Error.NotFound(
+                "Quiz.NotFound",
+                $"Quiz with id '{quizId}' not found");
+
+        public static readonly Error Forbidden =
+            Error.Forbidden(
+                "Quiz.Forbidden",
+                $"Quiz operation rejected, neither owner nor admin");
+
         public static Error QuestionsCountLimitReached(uint max) =>
             Error.Validation(
                 "Quiz.QuestionsCountLimitReached",

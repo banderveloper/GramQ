@@ -30,6 +30,9 @@ public readonly struct Error : IEquatable<Error>
     public static Error Unauthorized(string code, string description) =>
         new(code, description, ErrorType.Unauthorized);
 
+    public static Error Forbidden(string code, string description) =>
+        new(code, description, ErrorType.Forbidden);
+
     public bool Equals(Error other) =>
         Code == other.Code && Type == other.Type;
 
