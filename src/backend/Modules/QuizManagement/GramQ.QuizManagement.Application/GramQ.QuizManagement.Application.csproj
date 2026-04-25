@@ -7,8 +7,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\src\backend\BuildingBlocks\GramQ.Shared\GramQ.Shared.csproj" />
-      <ProjectReference Include="..\src\backend\Modules\QuizManagement\GramQ.QuizManagement.Domain\GramQ.QuizManagement.Domain.csproj" />
+      <ProjectReference Include="..\..\..\BuildingBlocks\GramQ.Shared\GramQ.Shared.csproj" />
+      <ProjectReference Include="..\GramQ.QuizManagement.Domain\GramQ.QuizManagement.Domain.csproj" />
     </ItemGroup>
 
 </Project>
