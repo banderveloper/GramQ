@@ -1,4 +1,4 @@
-﻿namespace GramQ.Api.Requests;
+﻿namespace GramQ.Api.Requests.Quiz;
 
 public sealed record CreateQuizRequest
 {

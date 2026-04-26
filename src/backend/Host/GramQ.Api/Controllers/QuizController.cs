@@ -1,5 +1,6 @@
 ﻿using GramQ.Api.Controllers.Mappers;
 using GramQ.Api.Requests;
+using GramQ.Api.Requests.Quiz;
 using GramQ.QuizManagement.Application.Queries;
 using GramQ.QuizManagement.Application.UseCases.Commands;
 using GramQ.QuizManagement.Application.UseCases.Queries;

@@ -1,7 +1,7 @@
 ﻿using GramQ.QuizManagement.Application.Queries;
 using GramQ.QuizManagement.Domain.Aggregates.Quizzes;
 
-namespace GramQ.Api.Requests;
+namespace GramQ.Api.Requests.Quiz;
 
 public sealed record GetQuizzesRequest
 {
