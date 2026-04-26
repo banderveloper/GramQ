@@ -14,9 +14,14 @@ public class QuizConfiguration : IEntityTypeConfiguration<Quiz>
 
         builder.HasIndex(q => q.CreatedBy);
 
-        builder.HasMany<Question>("_questions")
+        builder.Navigation(q => q.Questions)
+            .HasField("_questions")
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany<Question>(q => q.Questions)
             .WithOne()
             .HasForeignKey("QuizId")
+            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Property(q => q.Title).HasMaxLength(QuizRules.MaxQuizTitleLength).IsRequired();

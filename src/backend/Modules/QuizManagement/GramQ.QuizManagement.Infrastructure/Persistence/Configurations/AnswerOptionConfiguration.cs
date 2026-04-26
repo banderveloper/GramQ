@@ -9,6 +9,8 @@ public class AnswerOptionConfiguration : IEntityTypeConfiguration<AnswerOption>
 {
     public void Configure(EntityTypeBuilder<AnswerOption> builder)
     {
+        builder.ToTable("AnswerOptions");
+
         builder.HasKey(ao => ao.Id);
 
         builder.HasIndex("QuestionId");

@@ -13,8 +13,8 @@ public sealed class QuizRepository(QuizManagementDbContext dbContext) : IQuizRep
     public async Task<Quiz?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         return await dbContext.Quizzes
-            .Include("_questions")
-            .Include("_questions._answerOptions")
+            .Include(q => q.Questions)
+            .ThenInclude(q => q.AnswerOptions)
             .FirstOrDefaultAsync(q => q.Id == id, cancellationToken);
     }
 

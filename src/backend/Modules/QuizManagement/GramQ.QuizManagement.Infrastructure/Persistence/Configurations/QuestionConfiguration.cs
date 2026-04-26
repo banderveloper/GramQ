@@ -9,6 +9,8 @@ public class QuestionConfiguration : IEntityTypeConfiguration<Question>
 {
     public void Configure(EntityTypeBuilder<Question> builder)
     {
+        builder.ToTable("Questions");
+
         builder.HasKey(q => q.Id);
 
         builder.HasIndex("QuizId");
@@ -18,9 +20,14 @@ public class QuestionConfiguration : IEntityTypeConfiguration<Question>
         builder.Property(q => q.Points);
         builder.Property(q => q.TimeLimitSeconds);
 
-        builder.HasMany<AnswerOption>("_answerOptions")
+        builder.HasMany<AnswerOption>(q => q.AnswerOptions)
             .WithOne()
             .HasForeignKey("QuestionId")
+            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(q => q.AnswerOptions)
+            .HasField("_answerOptions")
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

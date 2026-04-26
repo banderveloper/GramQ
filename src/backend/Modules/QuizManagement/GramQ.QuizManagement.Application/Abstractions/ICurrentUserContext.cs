@@ -2,6 +2,6 @@
 
 public interface ICurrentUserContext
 {
-    Guid UserId { get; set; }
-    bool IsAdmin { get; set; }
+    Guid UserId { get; }
+    bool IsAdmin { get; }
 }
