@@ -42,7 +42,7 @@ public abstract class BaseController : ControllerBase
     {
         return ValidationProblem(new ValidationProblemDetails(new Dictionary<string, string[]>
         {
-            { "errors", [error.Code, error.Description] }
+            { error.Code, [error.Description] }
         }));
     }
 }
