@@ -1,6 +1,6 @@
 ﻿namespace GramQ.Api.Requests.Question;
 
-public record ReorderQuestionsRequest
+public sealed record ReorderQuestionsRequest
 {
     public IReadOnlyList<Guid> QuestionsIds { get; init; } = [];
 };

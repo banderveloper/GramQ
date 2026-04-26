@@ -42,7 +42,7 @@ public class QuestionController : BaseController
     }
 
     [HttpDelete("{questionId:guid}")]
-    public async Task<IActionResult> DeleteQuestion(
+    public async Task<IActionResult> RemoveQuestion(
         [FromRoute] Guid quizId,
         [FromRoute] Guid questionId,
         [FromServices] RemoveQuestionCommandHandler handler)
