@@ -8,12 +8,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GramQ.QuizManagement.Infrastructure.Persistence.Repositories;
 
-public sealed class QuizRepository(QuizManagementDbContext dbContext, IUnitOfWork uow) : IQuizRepository
+public sealed class QuizRepository(QuizManagementDbContext dbContext) : IQuizRepository
 {
     public async Task<Quiz?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        // todo include shadow prop?
-        return await dbContext.Quizzes.FindAsync([id], cancellationToken);
+        return await dbContext.Quizzes
+            .Include("_questions")
+            .Include("_questions._answerOptions")
+            .FirstOrDefaultAsync(q => q.Id == id, cancellationToken);
     }
 
     public async Task<PagedResult<Quiz>> GetPagedAsync(QuizFilter filter, CancellationToken cancellationToken)
@@ -28,21 +30,26 @@ public sealed class QuizRepository(QuizManagementDbContext dbContext, IUnitOfWor
             query = query.Where(q => q.Status == filter.Status);
 
         if (filter.TitleContains != null)
-            query = query.Where(q => q.Title.ToLower().Contains(filter.TitleContains.ToLower()));
+            query = query.Where(q => EF.Functions.ILike(q.Title, $"%{filter.TitleContains}%"));
 
-        if (filter.SortBy != null)
+        query = filter.SortBy switch
         {
-            query = filter.SortBy switch
-            {
-                // todo add sort
-                _ => filter.SortDescending ? query.OrderByDescending(q => q.Id) : query.OrderBy(q => q.Id)
-            };
-        }
+            QuizFilter.QuizSortBy.CreatedAt => filter.SortDescending
+                ? query.OrderByDescending(q => q.CreatedAt)
+                : query.OrderBy(q => q.CreatedAt),
+            QuizFilter.QuizSortBy.Title => filter.SortDescending
+                ? query.OrderByDescending(q => q.Title)
+                : query.OrderBy(q => q.Title),
+            QuizFilter.QuizSortBy.Status => filter.SortDescending
+                ? query.OrderByDescending(q => q.Status)
+                : query.OrderBy(q => q.Status),
+            _ => query.OrderBy(q => q.CreatedAt)
+        };
 
         var totalCount = await query.CountAsync(cancellationToken);
 
         var elements = await query
-            .Skip((filter.PageSize - 1) * filter.Page)
+            .Skip((filter.Page - 1) * filter.PageSize)
             .Take(filter.PageSize)
             .ToListAsync(cancellationToken);
 
